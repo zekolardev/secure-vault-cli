@@ -35,6 +35,7 @@ class Vault:
 
         self.salt = generate_salt()
         self.key = derive_key(self.password, self.salt)
+        self.password = None
 
         self.save()
         return self
@@ -46,21 +47,28 @@ class Vault:
             raise FileNotFoundError("Vault file not found.")
 
         try:
-            data = json.loads(self.file_path.read_text(encoding="utf-8"))
+            data = json.loads(
+                self.file_path.read_text(encoding="utf-8")
+            )
 
             if data.get("version") != self.VERSION:
                 raise ValueError("Unsupported vault version.")
 
             self.salt = bytes.fromhex(data["salt"])
             self.key = derive_key(self.password, self.salt)
+            self.password = None
 
             encrypted_data = bytes.fromhex(data["data"])
             decrypted_data = decrypt_data(encrypted_data, self.key)
 
-            self.entries = json.loads(decrypted_data.decode("utf-8"))
+            self.entries = json.loads(
+                decrypted_data.decode("utf-8")
+            )
 
         except InvalidToken as exc:
-            raise InvalidPasswordError("Incorrect master password.") from exc
+            raise InvalidPasswordError(
+                "Incorrect master password."
+            ) from exc
 
         return self
 
@@ -84,7 +92,10 @@ class Vault:
             "data": encrypted_data.hex(),
         }
 
-        self.file_path.parent.mkdir(parents=True, exist_ok=True)
+        self.file_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
         temp_path = None
 
@@ -96,7 +107,12 @@ class Vault:
                 delete=False,
             ) as temp_file:
                 temp_path = Path(temp_file.name)
-                json.dump(payload, temp_file, ensure_ascii=False)
+
+                json.dump(
+                    payload,
+                    temp_file,
+                    ensure_ascii=False,
+                )
 
             os.replace(temp_path, self.file_path)
 
@@ -111,7 +127,9 @@ class Vault:
             raise ValueError("Entry name cannot be empty.")
 
         if name in self.entries:
-            raise ValueError("An entry with this name already exists.")
+            raise ValueError(
+                "An entry with this name already exists."
+            )
 
         self.entries[name] = {
             "username": username,
@@ -132,7 +150,10 @@ class Vault:
     def list_entries(self):
         """Return all entry names."""
 
-        return sorted(self.entries.keys(), key=str.casefold)
+        return sorted(
+            self.entries.keys(),
+            key=str.casefold,
+        )
 
     def search_entries(self, query):
         """Search entries by name."""
